@@ -2353,5 +2353,286 @@
     "OS-level IME composition",
     "Linux",
     "Luau static analysis (no configured language server)"
-  ]
+  ],
+  "documentationReview": {
+    "branch": "docs/plugin-contributor-guide",
+    "basedOnFeatureCommit": "1c3c145",
+    "featurePullRequest": "https://github.com/pashifika/tern-plugins/pull/1",
+    "projectType": "Framework/plugin: native Tern plugin with host/window entry points and a YAML configuration API",
+    "audience": "End users in README; maintainers in CONTRIBUTING.md",
+    "sourceHashes": {
+      "AGENTS.md": "1a8e13871f19348c51926b1fd082db3f6de3384883fb0b004ea4d4eb4760c50f",
+      "CONTRIBUTING.md": "f7bfeef0be974fbd596d1bc3e41a28f1bd0f410e63aa6e616a5d19bf3065ed2d",
+      "project-commands/README.md": "298cbcc576e34e1c186a3be789fc2297f50605d2468190c270ff0c2690db8207",
+      "project-commands/docs/configuration.md": "5920947dd7c17f44a480f1a7e68c454b30e3b10f78bc93bb990e000c37da7a84",
+      ".gitignore": "52a4403e95ab28c48eddd3a9aecdca6906e846fbacb8fd010a9219d9e8304e52"
+    },
+    "sdk": {
+      "remote": "https://github.com/stencil-hq/tern-sdk",
+      "revision": "f3f9fee82bf692166c2a477a895a347ac2a47ca2",
+      "update": "git pull --ff-only origin main",
+      "result": "Already up to date",
+      "portableIgnoreVerified": true
+    },
+    "checklist": {
+      "passed": 21,
+      "applicable": 21,
+      "notApplicable": 4,
+      "items": [
+        {
+          "item": 1,
+          "name": "Project name title",
+          "status": "pass"
+        },
+        {
+          "item": 2,
+          "name": "One-liner below title",
+          "status": "pass"
+        },
+        {
+          "item": 3,
+          "name": "Runnable fastest installation",
+          "status": "pass"
+        },
+        {
+          "item": 4,
+          "name": "Copy-paste usage",
+          "status": "pass"
+        },
+        {
+          "item": 5,
+          "name": "Plugin-appropriate section order",
+          "status": "pass"
+        },
+        {
+          "item": 6,
+          "name": "Table of contents above 100 lines",
+          "status": "not-applicable",
+          "reason": "README is exactly 100 lines; a TOC is required only above 100."
+        },
+        {
+          "item": 7,
+          "name": "First-run path under 60 seconds with prerequisites",
+          "status": "pass",
+          "evidence": "Installation completed in 2.287 seconds. The first run uses three documented UI steps and pwd; this is a checklist assessment, not a timed first-time human usability study."
+        },
+        {
+          "item": 8,
+          "name": "Executable code blocks",
+          "status": "pass"
+        },
+        {
+          "item": 9,
+          "name": "No placeholders",
+          "status": "pass"
+        },
+        {
+          "item": 10,
+          "name": "Clear one-sentence description",
+          "status": "pass"
+        },
+        {
+          "item": 11,
+          "name": "Package manager and exact package name",
+          "status": "not-applicable",
+          "reason": "Unpublished private package installed from a source checkout, not a registry name."
+        },
+        {
+          "item": 12,
+          "name": "Realistic visible command results",
+          "status": "pass"
+        },
+        {
+          "item": 13,
+          "name": "Runtime and shell requirements",
+          "status": "pass"
+        },
+        {
+          "item": 14,
+          "name": "Active voice",
+          "status": "pass"
+        },
+        {
+          "item": 15,
+          "name": "No generic project opener",
+          "status": "pass"
+        },
+        {
+          "item": 16,
+          "name": "Consistent terminology",
+          "status": "pass"
+        },
+        {
+          "item": 17,
+          "name": "No empty headings",
+          "status": "pass"
+        },
+        {
+          "item": 18,
+          "name": "Declared license and license-file link",
+          "status": "not-applicable",
+          "reason": "No repository license is declared or present. README states this explicitly; choosing a license requires the owner, and the SDK license is not inherited."
+        },
+        {
+          "item": 19,
+          "name": "Problem-first opening",
+          "status": "pass"
+        },
+        {
+          "item": 20,
+          "name": "Defined terms and plain user wording",
+          "status": "pass"
+        },
+        {
+          "item": 21,
+          "name": "Tagged shell fences and separated internals",
+          "status": "pass"
+        },
+        {
+          "item": 22,
+          "name": "No inapplicable badges",
+          "status": "pass"
+        },
+        {
+          "item": 23,
+          "name": "Published package name freshness",
+          "status": "not-applicable",
+          "reason": "The package is not published to a registry."
+        },
+        {
+          "item": 24,
+          "name": "Working documentation links",
+          "status": "pass"
+        },
+        {
+          "item": 25,
+          "name": "Current APIs and feature names",
+          "status": "pass"
+        }
+      ],
+      "automaticFailures": []
+    },
+    "readme": {
+      "lines": 100,
+      "fenceLanguages": [
+        "bash",
+        "yaml"
+      ],
+      "placeholderPattern": "foo|bar|TODO|\\{\\{",
+      "placeholderMatches": 0,
+      "relativeLinksChecked": [
+        {
+          "file": "AGENTS.md",
+          "dest": "project-commands/README.md",
+          "exists": true
+        },
+        {
+          "file": "AGENTS.md",
+          "dest": "CONTRIBUTING.md",
+          "exists": true
+        },
+        {
+          "file": "AGENTS.md",
+          "dest": "CONTRIBUTING.md#sdk-reference",
+          "exists": true
+        },
+        {
+          "file": "CONTRIBUTING.md",
+          "dest": "project-commands/README.md",
+          "exists": true
+        },
+        {
+          "file": "CONTRIBUTING.md",
+          "dest": "project-commands/docs/configuration.md",
+          "exists": true
+        },
+        {
+          "file": "project-commands/README.md",
+          "dest": "docs/configuration.md",
+          "exists": true
+        },
+        {
+          "file": "project-commands/README.md",
+          "dest": "../CONTRIBUTING.md",
+          "exists": true
+        },
+        {
+          "file": "project-commands/docs/configuration.md",
+          "dest": "../README.md",
+          "exists": true
+        },
+        {
+          "file": "project-commands/docs/configuration.md",
+          "dest": "../../CONTRIBUTING.md",
+          "exists": true
+        }
+      ]
+    },
+    "installation": {
+      "elapsedMs": 2287,
+      "cloneStatus": 0,
+      "cloneRevision": "db636a3c52763ddf5f80e2f6e570eae0e30a7e48",
+      "installOutput": "bun install v1.3.14 (0d9b296a)\n\n+ yaml@2.9.1\n\n1 package installed [6.00ms]\n",
+      "registrationTarget": "owned temporary config/plugins",
+      "sourceVerified": true,
+      "linked": true,
+      "unlinked": true,
+      "generatedDeclarationBytes": 91687,
+      "normalUserRegistrationChanged": false
+    },
+    "examples": [
+      {
+        "id": "project-status",
+        "status": 0,
+        "stderr": "",
+        "branchLine": "## No commits yet on master"
+      },
+      {
+        "id": "build-environment",
+        "status": 0,
+        "stderr": "",
+        "stdout": "NODE_ENV=production\nRUSTFLAGS=-C target-cpu=native\n"
+      },
+      {
+        "id": "fish-tools",
+        "status": 0,
+        "stderr": "",
+        "tools": [
+          "bun",
+          "git"
+        ]
+      }
+    ],
+    "rendering": {
+      "engine": "Bun.markdown.html",
+      "browser": "isolated standalone Chrome",
+      "title": "Project Commands",
+      "headings": [
+        "Features",
+        "Requirements",
+        "Install",
+        "Quick start",
+        "Usage",
+        "Configuration",
+        "Contributing",
+        "License"
+      ],
+      "codeBlocks": 2,
+      "bodyOverflow": false,
+      "screenshot": "/var/folders/yf/1vkvy3vn58s9crywt84nv45m0000gn/T/omp-sshots-15a97d0bb8accfad.webp"
+    },
+    "behaviorEvidence": {
+      "reused": true,
+      "sourceChangesSinceFullVerification": [
+        "README.md"
+      ],
+      "note": "Runtime, tests and dependency fingerprints still match the 132-test/native smoke evidence. Original source hashes above remain historical; only documentation was changed."
+    },
+    "notRun": [
+      "Full unit/native suite was not repeated for documentation-only edits",
+      "Normal-user plugin registration",
+      "Timed first-time human usability study",
+      "License selection or creation"
+    ]
+  }
 }
