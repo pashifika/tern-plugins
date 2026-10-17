@@ -6,6 +6,25 @@ local states = setmetatable({}, { __mode = "v" })
 local fields = { "id", "name", "cwd", "shell", "run" }
 local formPrefix = "main.page.form."
 
+-- Replace only our launch marker before Tern starts its default login shell.
+tern.on("spawn", function(spec)
+	local prefix = "tern-project-commands-exec:"
+	local line = spec.args[#spec.args]
+	if type(line) ~= "string" or line:sub(1, #prefix) ~= prefix then return nil end
+	spec.program = bridge.bunPath()
+	spec.args = { tern.plugin.dir .. "/helper.ts", "terminal" }
+	local ok, launch = pcall(function()
+		return tern.json.decode(tern.base64.decode(line:sub(#prefix + 1)))
+	end)
+	if ok and type(launch) == "table" and type(launch.root) == "string" and type(launch.id) == "string" then
+		table.insert(spec.args, launch.root)
+		table.insert(spec.args, launch.id)
+	else
+		tern.log.error("Invalid Project Commands terminal launch")
+	end
+	return spec
+end)
+
 local function text(key, value, style)
 	return ui.node("text", { key = key, spans = { ui.span(value, style) } })
 end
@@ -61,6 +80,9 @@ local function request(state, cx, payload, done)
 end
 
 local function applySnapshot(state, snapshot)
+	if state.root ~= snapshot.root then
+		state.deleted = {}
+	end
 	state.root, state.path, state.revision = snapshot.root, snapshot.path, snapshot.revision
 	state.commands = snapshot.commands
 end
@@ -71,6 +93,30 @@ local function reload(state, cx)
 	end
 	request(state, cx, { op = "load", cwd = state.root }, function(snapshot)
 		applySnapshot(state, snapshot)
+	end)
+end
+
+local function deleteCommand(state, command, cx)
+	request(state, cx, {
+		op = "remove", root = state.root, revision = state.revision, id = command.id,
+	}, function(result)
+		applySnapshot(state, result.snapshot)
+		table.insert(state.deleted, { deleted = result.deleted, name = command.name })
+		state.notice = 'Deleted "' .. command.name .. '".'
+	end)
+end
+
+local function undoDelete(state, cx)
+	if state.busy or state.form or #state.deleted == 0 then
+		return
+	end
+	local entry = state.deleted[#state.deleted]
+	request(state, cx, {
+		op = "restore", root = state.root, revision = state.revision, deleted = entry.deleted,
+	}, function(snapshot)
+		applySnapshot(state, snapshot)
+		table.remove(state.deleted)
+		state.notice = 'Restored "' .. entry.name .. '".'
 	end)
 end
 
@@ -113,10 +159,10 @@ local function beginForm(state, command, cx)
 		return
 	end
 	local original = command or {
-		id = "", name = "", cwd = ".", shell = if tern.runtime.os == "macos" then "/bin/zsh" else "/bin/sh",
-		run = "", enabled = true, env = {},
+		id = "", name = "", cwd = ".", shell = if tern.runtime.os == "macos" then "zsh" else "sh",
+		run = "", enabled = true, execution = "background", profiles = true, env = {},
 	}
-	local form = { env = {}, enabled = original.enabled, originalId = if command then command.id else nil }
+	local form = { env = {}, enabled = original.enabled, background = original.execution == "background", profiles = original.profiles, originalId = if command then command.id else nil }
 	for _, name in fields do
 		form[name] = editor.new(original[name])
 	end
@@ -142,7 +188,7 @@ end
 
 local function commandFromForm(state)
 	local form = state.form
-	local command = { enabled = form.enabled, env = {} }
+	local command = { enabled = form.enabled, execution = if form.background then "background" else "tab", profiles = form.profiles, env = {} }
 	for _, name in fields do
 		command[name] = form[name].text
 	end
@@ -164,7 +210,7 @@ local function commandFromForm(state)
 		command.cwd = "."
 	end
 	if command.shell == "" then
-		command.shell = if tern.runtime.os == "macos" then "/bin/zsh" else "/bin/sh"
+		command.shell = if tern.runtime.os == "macos" then "zsh" else "sh"
 	end
 	for _, row in form.env do
 		local key = row.key.text
@@ -232,10 +278,18 @@ local function formView(state)
 		inputField(state, "id", "ID", "build-project"),
 		inputField(state, "name", "Name", "Build project"),
 		inputField(state, "cwd", "Working directory (relative to project root)", "."),
-		inputField(state, "shell", "Shell (absolute path)", "/bin/zsh"),
+		inputField(state, "shell", "Shell (name or absolute path)", "zsh / fish"),
+		ui.el("label", { key = "profiles", class = "pc-enabled" }, {
+			ui.el("input", { key = "check", type = "checkbox", name = "profiles", checked = form.profiles, disabled = state.busy }),
+			text("label", "Load shell profiles — " .. (if form.profiles then "On" else "Off")),
+		}),
 		ui.el("label", { key = "enabled", class = "pc-enabled" }, {
 			ui.el("input", { key = "check", type = "checkbox", name = "enabled", checked = form.enabled, disabled = state.busy }),
 			text("label", "Enabled — " .. (if form.enabled then "On" else "Off")),
+		}),
+		ui.el("label", { key = "background", class = "pc-enabled" }, {
+			ui.el("input", { key = "check", type = "checkbox", name = "background", checked = form.background, disabled = state.busy }),
+			text("label", "Run in background — " .. (if form.background then "On" else "Off (new terminal tab)")),
 		}),
 		inputField(state, "run", "Run (multiline shell script)", "bun run build\nbun run preview"),
 		ui.node("col", { key = "env" }, {
@@ -263,12 +317,15 @@ local function commandsView(state)
 			text("id", command.id, "muted"),
 			text("cwd", "cwd: " .. command.cwd, "muted"),
 			text("shell", "shell: " .. command.shell, "muted"),
+			text("execution", "execution: " .. command.execution, "muted"),
+			text("profiles", "profiles: " .. (if command.profiles then "On" else "Off"), "muted"),
 			text("env", "env: " .. (if #keys == 0 then "none" else table.concat(keys, ", ")), "muted"),
 			ui.node("code", { key = "script", text = command.run, lang = "bash", role = "project-commands.script" }),
 			ui.node("row", { key = "actions", role = "project-commands.actions" }, {
 				button("run", "Run", "run=" .. command.id, state.busy or not command.enabled, true),
 				button("edit", "Edit", "edit=" .. command.id, state.busy),
 				button("toggle", if command.enabled then "Turn Off" else "Turn On", "toggle=" .. command.id, state.busy),
+				button("delete", "Delete", "delete=" .. command.id, state.busy),
 			}),
 		}))
 	end
@@ -297,7 +354,7 @@ tern.block.define("manager", {
 	init = function(cx, args, saved)
 		local state = {
 			root = args[1] or (if type(saved) == "table" then saved.root else nil) or cx.cwd or tern.getenv("HOME") or "/",
-			commands = {}, busy = false, nextEnv = 0,
+			commands = {}, deleted = {}, busy = false, nextEnv = 0,
 		}
 		states[cx.pane] = state
 		reload(state, cx)
@@ -326,7 +383,11 @@ tern.block.define("manager", {
 			table.insert(page, ui.node("row", { key = "toolbar", role = "project-commands.actions" }, {
 				button("new", "New command", "new", state.busy or not state.revision, true),
 				button("reload", "Reload", "reload", state.busy),
+				button("undo", "Undo delete (" .. tostring(#state.deleted) .. ")", "undo-delete", state.busy or #state.deleted == 0),
 			}))
+			if #state.deleted > 0 then
+				table.insert(page, text("undo-hint", "Deletion undo is available until this manager closes.", "muted"))
+			end
 			table.insert(page, commandsView(state))
 		end
 		local dock
@@ -354,6 +415,8 @@ tern.block.define("manager", {
 			if fieldFor(state, ev.id) then
 				focus(state, ev.id, cx)
 			end
+		elseif ev.ev == "undo" and not state.form then
+			undoDelete(state, cx)
 		elseif ev.ev == "edit" or ev.ev == "undo" then
 			local field, multiline = fieldFor(state, ev.id)
 			if not field then
@@ -367,6 +430,10 @@ tern.block.define("manager", {
 			end
 		elseif ev.ev == "change" and state.form and ev.id == formPrefix .. "enabled.check" then
 			state.form.enabled = ev.checked == true
+		elseif ev.ev == "change" and state.form and ev.id == formPrefix .. "background.check" then
+			state.form.background = ev.checked == true
+		elseif ev.ev == "change" and state.form and ev.id == formPrefix .. "profiles.check" then
+			state.form.profiles = ev.checked == true
 		elseif ev.ev == "action" then
 			local action = ev.act
 			if state.form then
@@ -393,11 +460,15 @@ tern.block.define("manager", {
 				beginForm(state, nil, cx)
 			elseif action == "reload" then
 				reload(state, cx)
+			elseif action == "undo-delete" then
+				undoDelete(state, cx)
 			else
 				for _, command in state.commands do
 					if command.id == ev.value then
 						if action == "edit" then
 							beginForm(state, command, cx)
+						elseif action == "delete" then
+							deleteCommand(state, command, cx)
 						elseif action == "toggle" then
 							request(state, cx, {
 								op = "toggle", root = state.root, revision = state.revision, id = command.id, enabled = not command.enabled,
@@ -414,7 +485,14 @@ tern.block.define("manager", {
 		end
 	end,
 	key = function(state, key, cx)
-		if state.busy or not state.form then
+		if state.busy then
+			return false
+		end
+		if not state.form then
+			if (key.meta or key.ctrl) and key.name == "z" and not key.shift and not key.alt then
+				undoDelete(state, cx)
+				return true
+			end
 			return false
 		end
 		if (key.meta or key.ctrl) and key.name == "s" then

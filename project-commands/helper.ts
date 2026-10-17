@@ -1,19 +1,18 @@
 import { createHash, randomUUID } from "node:crypto";
 import { constants } from "node:fs";
-import { access, lstat, mkdir, open, realpath, rename, stat, unlink } from "node:fs/promises";
-import { dirname, isAbsolute, join, normalize, relative, resolve, sep } from "node:path";
-import { fileURLToPath } from "node:url";
+import { access, lstat, mkdir, mkdtemp, open, realpath, rename, rm, stat, unlink } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { basename, delimiter, dirname, isAbsolute, join, normalize, relative, resolve, sep } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { isMap, isScalar, isSeq, parseDocument, visit, type Document, type YAMLMap } from "yaml";
 
 export const MAX_FILE_BYTES = 1024 * 1024;
 export const CONFIG_NAME = "tern-commands.yaml";
-export const DEFAULT_SHELL = process.platform === "darwin" ? "/bin/zsh" : "/bin/sh";
-const COMMAND_FIELDS: Record<string, true> = { id: true, name: true, enabled: true, cwd: true, shell: true, env: true, run: true };
+export const DEFAULT_SHELL = process.platform === "darwin" ? "zsh" : "sh";
+const COMMAND_FIELDS: Record<string, true> = { id: true, name: true, enabled: true, execution: true, cwd: true, shell: true, profiles: true, env: true, run: true };
 const CONFIG_FIELDS: Record<string, true> = { version: true, commands: true };
 const ID_PATTERN = /^[a-z][a-z0-9-]*$/;
 const ENV_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
-const HELPER_PATH = fileURLToPath(import.meta.url);
 const LOCK_ATTEMPTS = 80;
 const LOCK_WAIT_MS = 25;
 
@@ -21,8 +20,10 @@ export interface Command {
   id: string;
   name: string;
   enabled: boolean;
+  execution: "background" | "tab";
   cwd: string;
   shell: string;
+  profiles: boolean;
   env: Record<string, string>;
   run: string;
 }
@@ -43,6 +44,36 @@ export interface ToggleRequest {
   revision: string;
   id: string;
   enabled: boolean;
+}
+export interface RemoveRequest {
+  root: string;
+  revision: string;
+  id: string;
+}
+export interface DeletedCommand {
+  source: string;
+  index: number;
+}
+export interface RemoveResult {
+  snapshot: Snapshot;
+  deleted: DeletedCommand;
+}
+export interface RestoreRequest {
+  root: string;
+  revision: string;
+  deleted: unknown;
+}
+export interface PreparedCommand {
+  root: string;
+  id: string;
+  cwd: string;
+  name: string;
+  execution: Command["execution"];
+}
+export interface RunResult {
+  name: string;
+  status: number;
+  logPath?: string;
 }
 interface State {
   snapshot: Snapshot;
@@ -108,20 +139,28 @@ export function validateCommand(input: unknown): Command {
   const run = text(value.run, "Command run");
   const enabled = optional(value, "enabled", true);
   if (typeof enabled !== "boolean") throw new Error("Command enabled must be a boolean");
+  const execution = optional(value, "execution", "background");
+  if (execution !== "background" && execution !== "tab") {
+    throw new Error("Command execution must be background or tab");
+  }
   const cwd = text(optional(value, "cwd", "."), "Command cwd");
   const normalizedCwd = normalize(cwd);
   if (isAbsolute(cwd) || normalizedCwd === ".." || normalizedCwd.startsWith(`..${sep}`)) {
     throw new Error("Command cwd must be relative and remain inside the project root");
   }
   const shell = text(optional(value, "shell", DEFAULT_SHELL), "Command shell");
-  if (!isAbsolute(shell)) throw new Error("Command shell must be an absolute path");
+  if (!isAbsolute(shell) && (shell.includes(sep) || shell === "." || shell === "..")) {
+    throw new Error("Command shell must be an executable name or an absolute path");
+  }
+  const profiles = optional(value, "profiles", true);
+  if (typeof profiles !== "boolean") throw new Error("Command profiles must be a boolean");
   const envInput = record(optional(value, "env", {}), "Command env");
   const entries: [string, string][] = [];
   for (const [key, value] of Object.entries(envInput)) {
     if (!ENV_PATTERN.test(key)) throw new Error(`Invalid environment variable name: ${key}`);
     entries.push([key, text(value, `Environment variable ${key}`, true)]);
   }
-  return { id, name, enabled, cwd, shell, env: Object.fromEntries(entries), run };
+  return { id, name, enabled, execution, cwd, shell, profiles, env: Object.fromEntries(entries), run };
 }
 
 async function projectRoot(value: unknown): Promise<string> {
@@ -299,7 +338,7 @@ function commandSequence(document: Document) {
 }
 
 function updateCommand(document: Document, node: YAMLMap, command: Command): void {
-  for (const key of ["id", "name", "enabled", "cwd", "shell", "run"] as const) {
+  for (const key of ["id", "name", "enabled", "execution", "cwd", "shell", "profiles", "run"] as const) {
     node.set(key, command[key]);
   }
   const run = node.get("run", true);
@@ -367,7 +406,98 @@ export async function toggle(request: ToggleRequest): Promise<Snapshot> {
   });
 }
 
-async function runnable(rootInput: string, idInput: string): Promise<{ root: string; cwd: string; command: Command }> {
+export async function remove(request: RemoveRequest): Promise<RemoveResult> {
+  const root = await projectRoot(request.root);
+  const id = commandId(request.id);
+  if (typeof request.revision !== "string") throw new Error("Remove requires a configuration revision");
+  if (!await exists(configPath(root))) {
+    checkRevision(request.revision, "missing");
+    throw new Error(`Command not found: ${id}`);
+  }
+  return withLock(configPath(root), async () => {
+    const state = await readState(root);
+    checkRevision(request.revision, state.snapshot.revision);
+    const index = state.snapshot.commands.findIndex(item => item.id === id);
+    if (index < 0) throw new Error(`Command not found: ${id}`);
+    const sequence = commandSequence(state.document);
+    const node = sequence.items[index];
+    if (!isMap(node)) throw new Error("Command must be a mapping");
+    // Only the removed node belongs to Undo; document and sequence comments stay on disk.
+    const receipt = parseDocument("version: 1\ncommands: []\n");
+    const receiptSequence = commandSequence(receipt);
+    receiptSequence.flow = false;
+    receiptSequence.add(node);
+    const source = receipt.toString({ lineWidth: 0 });
+    if (Buffer.byteLength(source) > MAX_FILE_BYTES) throw new Error("Deleted command source exceeds the 1 MiB limit");
+    sequence.items.splice(index, 1);
+    state.snapshot.commands.splice(index, 1);
+    return { snapshot: await writeState(state), deleted: { source, index } };
+  });
+}
+
+export async function restore(request: RestoreRequest): Promise<Snapshot> {
+  const root = await projectRoot(request.root);
+  if (typeof request.revision !== "string") throw new Error("Restore requires a configuration revision");
+  const deleted = record(request.deleted, "Deleted command");
+  allowedFields(deleted, { source: true, index: true }, "deleted command");
+  if (typeof deleted.index !== "number" || !Number.isSafeInteger(deleted.index) || deleted.index < 0) {
+    throw new Error("Deleted command index must be a nonnegative safe integer");
+  }
+  const originalIndex = deleted.index;
+  const source = text(deleted.source, "Deleted command source");
+  if (Buffer.byteLength(source) > MAX_FILE_BYTES) throw new Error("Deleted command source exceeds the 1 MiB limit");
+  const receipt = parseConfig(source);
+  if (receipt.commands.length !== 1) throw new Error("Deleted command source must contain exactly one command");
+  const command = receipt.commands[0];
+  const receiptSequence = commandSequence(receipt.document);
+  const node = receiptSequence.items[0];
+  if (!isMap(node)) throw new Error("Command must be a mapping");
+  // Parsing a standalone sequence moves its first item's leading comments onto the sequence.
+  if (receiptSequence.commentBefore) {
+    node.commentBefore = [receiptSequence.commentBefore, node.commentBefore].filter(Boolean).join("\n");
+  }
+  await mkdir(dirname(configPath(root)), { recursive: true, mode: 0o700 });
+  return withLock(configPath(root), async () => {
+    const state = await readState(root);
+    checkRevision(request.revision, state.snapshot.revision);
+    const commands = state.snapshot.commands;
+    if (commands.some(item => item.id === command.id)) throw new Error(`Duplicate command id: ${command.id}`);
+    const index = Math.min(originalIndex, commands.length);
+    const sequence = commandSequence(state.document);
+    if (sequence.items.length === 0) sequence.flow = false;
+    sequence.items.splice(index, 0, node);
+    commands.splice(index, 0, command);
+    return writeState(state);
+  });
+}
+
+interface ResolvedShell {
+  path: string;
+  name: string;
+}
+
+async function resolveShell(shell: string): Promise<ResolvedShell> {
+  const directories = process.platform === "darwin"
+    ? ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin", "/opt/homebrew/sbin", "/usr/local/sbin", "/usr/sbin", "/sbin"]
+    : ["/usr/local/bin", "/usr/bin", "/bin", "/usr/local/sbin", "/usr/sbin", "/sbin"];
+  const candidates = isAbsolute(shell)
+    ? [shell]
+    : [...new Set([...(process.env.PATH?.split(delimiter) ?? []), ...directories])].map(directory => resolve(directory, shell));
+  for (const path of candidates) {
+    try {
+      const canonical = await realpath(path);
+      if (!(await stat(canonical)).isFile()) continue;
+      await access(canonical, constants.X_OK);
+      // Preserve the invocation name (e.g. sh -> bash), but choose flags by the actual executable.
+      return { path, name: basename(canonical) };
+    } catch (error) {
+      if (!["ENOENT", "ENOTDIR", "EACCES", "ELOOP"].some(code => hasCode(error, code))) throw error;
+    }
+  }
+  throw new Error(`Shell executable not found or not executable: ${shell}`);
+}
+
+async function runnable(rootInput: string, idInput: string): Promise<{ root: string; cwd: string; command: Command; shell: ResolvedShell }> {
   const root = await projectRoot(rootInput);
   const id = commandId(idInput);
   const { commands } = (await readState(root)).snapshot;
@@ -377,46 +507,103 @@ async function runnable(rootInput: string, idInput: string): Promise<{ root: str
   const cwd = await realpath(resolve(root, command.cwd));
   if (!staysInside(root, cwd)) throw new Error("Command cwd resolves outside the project root");
   if (!(await stat(cwd)).isDirectory()) throw new Error("Command cwd must resolve to a directory");
-  await access(command.shell, constants.X_OK);
-  return { root, cwd, command };
+  const shell = await resolveShell(command.shell);
+  return { root, cwd, command, shell };
 }
 
 export function shellQuote(value: string): string {
   return `'${value.replaceAll("'", "'\\''")}'`;
 }
 
-export async function prepare(root: string, id: string): Promise<{ cwd: string; command: string }> {
+export async function prepare(root: string, id: string): Promise<PreparedCommand> {
   const runnableCommand = await runnable(root, id);
-  return {
-    cwd: runnableCommand.cwd,
-    command: [process.execPath, HELPER_PATH, "execute", runnableCommand.root, runnableCommand.command.id].map(shellQuote).join(" "),
-  };
+  const { command } = runnableCommand;
+  return { root: runnableCommand.root, id: command.id, cwd: runnableCommand.cwd, name: command.name, execution: command.execution };
 }
 
-export async function execute(root: string, id: string): Promise<number> {
-  const { cwd, command } = await runnable(root, id);
-  // Startup files may change directory and variables. Reapply both after login initialization.
-  const setup = [`cd ${shellQuote(cwd)} || exit $?`];
+function startupEnvironment(): NodeJS.ProcessEnv {
+  const env = { ...process.env, HISTFILE: "/dev/null" };
+  for (const key of ["BASH_ENV", "ENV", "SHELLOPTS", "BASHOPTS"]) delete env[key];
+  return env;
+}
+
+function fishQuote(value: string): string {
+  return `'${value.replaceAll("\\", "\\\\").replaceAll("'", "\\'")}'`;
+}
+
+async function executeCommand(cwd: string, command: Command, shell: ResolvedShell, logFd?: number): Promise<number> {
+  const fish = shell.name === "fish";
+  const flags = fish
+    ? ["--private", command.profiles ? "--login" : "--no-config"]
+    : command.profiles ? ["-l"] : shell.name === "zsh" ? ["-f"] : shell.name === "bash" ? ["--noprofile", "--norc"] : [];
+  // Startup files can change cwd/env; restore literal command settings after startup.
+  const setup = [fish
+    ? `builtin cd -- ${fishQuote(cwd)}; or exit $status`
+    : `${shell.name === "zsh" ? "builtin" : "command"} cd ${shellQuote(cwd)} || exit $?`];
   for (const [key, value] of Object.entries(command.env)) {
-    setup.push(`export ${key}=${shellQuote(value)} || exit $?`);
+    setup.push(fish
+      ? `builtin set --global --export -- ${key} ${fishQuote(value)}; or exit $status`
+      : `export ${key}=${shellQuote(value)} || exit $?`);
   }
-  const child = Bun.spawn([command.shell, "-l", "-c", `${setup.join("\n")}\n${command.run}`], {
+  const child = Bun.spawn([shell.path, ...flags, "-c", `${setup.join("\n")}\n${command.run}`], {
     cwd,
-    env: process.env,
-    stdin: "inherit",
-    stdout: "inherit",
-    stderr: "inherit",
+    env: startupEnvironment(),
+    stdin: logFd === undefined ? "inherit" : "ignore",
+    stdout: logFd ?? "inherit",
+    stderr: logFd ?? "inherit",
   });
   return child.exited;
 }
 
-export async function rpc(input: unknown): Promise<Snapshot | { cwd: string; command: string }> {
+export async function execute(root: string, id: string): Promise<number> {
+  const { cwd, command, shell } = await runnable(root, id);
+  return executeCommand(cwd, command, shell);
+}
+
+export async function run(root: string, id: string): Promise<RunResult> {
+  const { cwd, command, shell } = await runnable(root, id);
+  const directory = await mkdtemp(join(tmpdir(), "tern-project-commands-"));
+  const logPath = join(directory, "output.log");
+  let retainLog = false;
+  try {
+    const log = await open(logPath, "wx", 0o600);
+    try {
+      // One shared descriptor preserves stdout/stderr writes without pipe-size limits.
+      retainLog = true;
+      const status = await executeCommand(cwd, command, shell, log.fd);
+      retainLog = status !== 0;
+      return status === 0 ? { name: command.name, status } : { name: command.name, status, logPath };
+    } catch (error) {
+      await log.write(`Command execution failed: ${error instanceof Error ? error.message : String(error)}\n`);
+      return { name: command.name, status: 1, logPath };
+    } finally {
+      await log.close();
+    }
+  } finally {
+    if (!retainLog) await rm(directory, { recursive: true, force: true });
+  }
+}
+
+export async function terminal(root: string, id: string): Promise<number> {
+  const { cwd, command, shell } = await runnable(root, id);
+  const status = await executeCommand(cwd, command, shell);
+  process.stdout.write(`\n[Project Commands] Exit status: ${status}\nPress Enter to finish.\n`);
+  for await (const chunk of Bun.stdin.stream()) {
+    if (chunk.includes(10) || chunk.includes(13)) break;
+  }
+  return status;
+}
+
+export async function rpc(input: unknown): Promise<Snapshot | RemoveResult | PreparedCommand | RunResult> {
   const request = record(input, "Request");
   switch (request.op) {
     case "load": return load(text(request.cwd, "Request cwd"));
     case "save": return save({ root: request.root as string, revision: request.revision as string, originalId: request.originalId as string | undefined, command: request.command });
     case "toggle": return toggle({ root: request.root as string, revision: request.revision as string, id: request.id as string, enabled: request.enabled as boolean });
+    case "remove": return remove({ root: request.root as string, revision: request.revision as string, id: request.id as string });
+    case "restore": return restore({ root: request.root as string, revision: request.revision as string, deleted: request.deleted });
     case "prepare": return prepare(text(request.root, "Project root"), text(request.id, "Command id"));
+    case "run": return run(text(request.root, "Project root"), text(request.id, "Command id"));
     default: throw new Error("Unknown request operation");
   }
 }
@@ -440,8 +627,10 @@ if (import.meta.main) {
       process.stdout.write(`${JSON.stringify(result)}\n`);
     } else if (mode === "execute" && root !== undefined && id !== undefined && extra.length === 0) {
       process.exitCode = await execute(root, id);
+    } else if (mode === "terminal" && root !== undefined && id !== undefined && extra.length === 0) {
+      process.exitCode = await terminal(root, id);
     } else {
-      throw new Error("Usage: bun helper.ts rpc | bun helper.ts execute <absolute-root> <command-id>");
+      throw new Error("Usage: bun helper.ts rpc | bun helper.ts execute <absolute-root> <command-id> | bun helper.ts terminal <absolute-root> <command-id>");
     }
   } catch (error) {
     process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
