@@ -1,0 +1,13 @@
+schema = 1
+id = "project-commands"
+name = "Project Commands"
+version = "0.1.0"
+description = "Project build commands with a native editor and YAML storage."
+icon = "terminal"
+host = "host.luau"
+window = "window.luau"
+styles = ["style.css"]
+
+[[blocks]]
+id = "manager"
+title = "Project Commands"

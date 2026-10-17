@@ -1,0 +1,158 @@
+{
+  "commands": [
+    "bun test helper.test.ts",
+    "bun run smoke"
+  ],
+  "unitTests": {
+    "passed": 50,
+    "failed": 0,
+    "assertions": 133,
+    "testSourceSha256": "71ad9ecc29c392c74f0c59aa44d1bb6ba3261e6883936044cb59756884315aaa"
+  },
+  "sourceHashes": {
+    "plugin.toml": "61a1c45da3d23be7109d964fbfda943efaac7d6928ffea9d766d8534d9b38469",
+    "window.luau": "c7659a168ad1798a5e97df4e8dc8efe015d69897d079b60f01813ac0617efab9",
+    "host.luau": "e60004d6029166ab7ec280f2b3bd8ad6ba84eca9f66aeef0929045a49bdb2ce8",
+    "lib/bridge.luau": "36d0eb7aacd850d37af82f1accdf44469630d7e565b2bb1408e33ab8772f24d3",
+    "lib/editor.luau": "94edfd6eb01021198856ff376bec088f70f069c4caee7e93a04cbc8f1e3a0063",
+    "helper.ts": "93dcd890bfc8191998bb21568f85e975914401d043e6c338adf8e6daf47ef211",
+    "style.css": "96ad74fd63f869e82b15f0985816f7792c54e7e3fb5f36b735edc74ab59c7fbe",
+    "bun.lock": "6c488f728395a340eaa245a737c5c992e0154d7b9622251599faf11bb16f2fce",
+    "scripts/smoke.ts": "07cfd04e26a4ca961a2a9ff2a824abd33ccd3457ea44518995a4702b358b739d"
+  },
+  "nativeSmoke": {
+    "tern": "tern 0.9.2 (23735aa)",
+    "bun": "1.3.14",
+    "pluginTarget": "/var/folders/yf/1vkvy3vn58s9crywt84nv45m0000gn/T/tern-commands-smoke-qrHUah/config/plugins",
+    "registration": {
+      "id": "project-commands",
+      "version": "0.1.0",
+      "dir": "/Users/pashifika/Work/pashifika.github/tern-plugins/project-commands"
+    },
+    "formScreenshot": "/var/folders/yf/1vkvy3vn58s9crywt84nv45m0000gn/T/tern-commands-smoke-qrHUah/project/target/shots/tern/live/command-form.png",
+    "created": {
+      "version": 1,
+      "commands": [
+        {
+          "id": "smoke-build",
+          "name": "日本語ビルド 🚀",
+          "enabled": true,
+          "cwd": "build space",
+          "shell": "/bin/zsh",
+          "env": {
+            "PC_SMOKE": "日本語 'quoted' $literal"
+          },
+          "run": "printf '%s\\n' \"$PC_SMOKE\" > result.txt\nprintf 'PC_SMOKE_OK\\n'"
+        }
+      ]
+    },
+    "paletteCreated": [
+      "Project Commands: Open manager",
+      "Project Commands: 日本語ビルド 🚀"
+    ],
+    "paletteScreenshot": "/var/folders/yf/1vkvy3vn58s9crywt84nv45m0000gn/T/tern-commands-smoke-qrHUah/project/target/shots/tern/live/command-palette.png",
+    "disabled": {
+      "enabled": false,
+      "openedPane": false,
+      "outputCreated": false
+    },
+    "offScreenshot": "/var/folders/yf/1vkvy3vn58s9crywt84nv45m0000gn/T/tern-commands-smoke-qrHUah/project/target/shots/tern/live/command-off.png",
+    "paletteDisabled": [
+      "Project Commands: Open manager"
+    ],
+    "unicodeUndo": "日本語ビルド 🚀",
+    "cancelPreservedBytes": true,
+    "edited": {
+      "version": 1,
+      "commands": [
+        {
+          "id": "smoke-build",
+          "name": "編集済みビルド 🚀",
+          "enabled": true,
+          "cwd": "build space",
+          "shell": "/bin/zsh",
+          "env": {
+            "PC_SMOKE": "日本語 'quoted' $literal"
+          },
+          "run": "printf '%s\\n' \"$PC_SMOKE\" > result.txt\nprintf 'PC_SMOKE_OK\\n'"
+        }
+      ]
+    },
+    "listScreenshot": "/var/folders/yf/1vkvy3vn58s9crywt84nv45m0000gn/T/tern-commands-smoke-qrHUah/project/target/shots/tern/live/command-list.png",
+    "paletteRenamed": [
+      "Project Commands: Open manager",
+      "Project Commands: 編集済みビルド 🚀"
+    ],
+    "execution": {
+      "id": 4294967302,
+      "label": "build space",
+      "cwd": "/private/var/folders/yf/1vkvy3vn58s9crywt84nv45m0000gn/T/tern-commands-smoke-qrHUah/project/build space",
+      "git": null,
+      "running": null,
+      "busy": false,
+      "last": {
+        "line": "'/Users/pashifika/.bun/bin/bun' '/Users/pashifika/Work/pashifika.github/tern-plugins/project-commands/helper.ts' 'execute' '/private/var/folders/yf/1vkvy3vn58s9crywt84nv45m0000gn/T/tern-commands-smoke-qrHUah/project' 'smoke-build'",
+        "status": 0
+      },
+      "exited": null,
+      "error": null,
+      "prompt": true,
+      "selection": null
+    },
+    "output": "日本語 'quoted' $literal\n",
+    "outputScreenshot": "/var/folders/yf/1vkvy3vn58s9crywt84nv45m0000gn/T/tern-commands-smoke-qrHUah/project/target/shots/tern/live/command-output.png",
+    "paletteOtherProject": [
+      "Project Commands: Open manager",
+      "Project Commands: Other project build",
+      "Project Commands: Other project only"
+    ],
+    "paletteOtherScreenshot": "/var/folders/yf/1vkvy3vn58s9crywt84nv45m0000gn/T/tern-commands-smoke-qrHUah/project/target/shots/tern/live/palette-other-project.png",
+    "paletteExecution": {
+      "id": 4294967304,
+      "label": "other-project",
+      "cwd": "/private/var/folders/yf/1vkvy3vn58s9crywt84nv45m0000gn/T/tern-commands-smoke-qrHUah/other-project",
+      "git": null,
+      "running": null,
+      "busy": false,
+      "last": {
+        "line": "'/Users/pashifika/.bun/bin/bun' '/Users/pashifika/Work/pashifika.github/tern-plugins/project-commands/helper.ts' 'execute' '/private/var/folders/yf/1vkvy3vn58s9crywt84nv45m0000gn/T/tern-commands-smoke-qrHUah/other-project' 'smoke-build'",
+        "status": 0
+      },
+      "exited": null,
+      "error": null,
+      "prompt": true,
+      "selection": null
+    },
+    "paletteOutputScreenshot": "/var/folders/yf/1vkvy3vn58s9crywt84nv45m0000gn/T/tern-commands-smoke-qrHUah/project/target/shots/tern/live/palette-command-output.png",
+    "paletteEmptyProject": [
+      "Project Commands: Open manager"
+    ],
+    "paletteReturned": [
+      "Project Commands: Open manager",
+      "Project Commands: 編集済みビルド 🚀"
+    ],
+    "paletteReloadAdded": [
+      "Project Commands: Open manager",
+      "Project Commands: Temporary command",
+      "Project Commands: 編集済みビルド 🚀"
+    ],
+    "paletteReloadRemoved": [
+      "Project Commands: Open manager",
+      "Project Commands: 編集済みビルド 🚀"
+    ],
+    "palettePluginReload": [
+      "Project Commands: Open manager",
+      "Project Commands: 編集済みビルド 🚀"
+    ],
+    "runtimeDiagnostics": "",
+    "passed": true
+  },
+  "fullEvidence": "/var/folders/yf/1vkvy3vn58s9crywt84nv45m0000gn/T/tern-commands-smoke-qrHUah/evidence.json",
+  "paletteRefreshBoundary": "Tern snapshots palette rows on opening. Reopen if an asynchronous configuration refresh completes while the palette is open.",
+  "notRun": [
+    "Rust/npm project builds",
+    "OS-level IME composition",
+    "Linux",
+    "Luau static analysis (luau-lsp unavailable)"
+  ]
+}
