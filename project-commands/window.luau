@@ -17,21 +17,27 @@ local function localPane(cx, pane)
 	return false
 end
 
-local function runInNewTerminal(cx, launch)
-	local pane = cx.hosts:terminal("local", { cwd = launch.cwd })
-	local deadline = tern.now() + 10000
-	local function whenReady(fresh)
-		local info = fresh.session:pane(pane)
-		if not info or info.kind ~= "terminal" then return end
-		if info.at_prompt then
-			fresh:run(pane, launch.command .. "\r")
-		elseif tern.now() >= deadline then
-			fresh:toast("error", "The new shell did not report a prompt. No command was sent.")
+local function runBackground(cx, launch)
+	bridge.call({ op = "run", root = launch.root, id = launch.id }, function(result, err, fresh)
+		local context = fresh or cx
+		if err then
+			context:toast("error", "Cannot run command", err)
+		elseif result.status == 0 then
+			context:toast("success", result.name .. " — succeeded")
 		else
-			tern.timer(50, whenReady)
+			context:toast("error", result.name .. " — failed (exit " .. tostring(result.status) .. ")", result.logPath)
+			if result.logPath and context.hosts:current().kind == "local" then
+				context:open(result.logPath, "tab")
+			end
 		end
-	end
-	tern.timer(50, whenReady)
+	end)
+end
+
+local function runInNewTerminal(cx, launch)
+	local payload = tern.base64.encode(tern.json.encode({ root = launch.root, id = launch.id }), { url = true })
+	local pane = cx.hosts:terminal("local", { cwd = launch.cwd, command = "tern-project-commands-exec:" .. payload })
+	local tab = cx.session:tab_of(pane)
+	if tab then cx.layout:name_tab(tab, launch.name) end
 end
 
 local function runCommand(cx, source, root, id)
@@ -45,7 +51,11 @@ local function runCommand(cx, source, root, id)
 		if err then context:toast("error", "Cannot run command", err); return end
 		local current = context.session:pane(source)
 		if not current or current.cwd ~= original.cwd or not localPane(context, source) then return end
-		runInNewTerminal(context, launch)
+		if launch.execution == "background" then
+			runBackground(context, launch)
+		else
+			runInNewTerminal(context, launch)
+		end
 	end)
 end
 

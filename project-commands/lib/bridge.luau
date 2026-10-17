@@ -1,6 +1,6 @@
 local bridge = {}
 
-local function bunPath()
+function bridge.bunPath()
 	local configured = tern.getenv("TERN_PROJECT_COMMANDS_BUN")
 	if configured and configured ~= "" then return configured end
 	local home = tern.getenv("HOME")
@@ -11,11 +11,12 @@ end
 
 function bridge.call(request, callback)
 	local ok, err = pcall(function()
-		tern.process.run({ bunPath(), tern.plugin.dir .. "/helper.ts", "rpc" }, {
+		local options = {
 			cwd = tern.plugin.dir,
 			stdin = tern.json.encode(request),
-			timeout_ms = 15000,
-		}, function(result, cx)
+		}
+		if request.op ~= "run" then options.timeout_ms = 15000 end
+		tern.process.run({ bridge.bunPath(), tern.plugin.dir .. "/helper.ts", "rpc" }, options, function(result, cx)
 			if result.status ~= 0 then
 				local message = result.stderr ~= "" and result.stderr or "Command helper failed. Install Bun and run bun install in the plugin directory."
 				callback(nil, message, cx)
