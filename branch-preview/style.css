@@ -1,0 +1,68 @@
+/* Let the hover label paint above its status strip, inside the composer. */
+.sf-dock[data-surface='omp.session'] [data-role='omp.composer.extras'],
+.sf-dock[data-surface='omp.session'] [data-role='omp.composer.extras'] .sf-st-row,
+.sf-dock[data-surface='omp.session'] [data-role='omp.composer.extras'] .sf-st-l,
+.sf-dock[data-surface='omp.session'] [data-role='omp.composer.extras'] .sf-seg[data-id$='/git'] {
+  overflow: visible;
+}
+
+.sf-dock[data-surface='omp.session'] [data-role='omp.composer.extras'] {
+  position: relative;
+}
+
+/* OMP emits the branch as the first span and each change count after it. */
+.sf-dock[data-surface='omp.session'] [data-role='omp.composer.extras'] .sf-seg[data-id$='/git'] {
+  --branch-preview-width: 140px;
+  position: static;
+  min-width: 0;
+  min-height: 22px;
+}
+
+.sf-dock[data-surface='omp.session'] [data-role='omp.composer.extras'] .sf-seg[data-id$='/git'] .sf-seg-t {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  overflow: visible;
+  white-space: pre;
+}
+
+.sf-dock[data-surface='omp.session'] [data-role='omp.composer.extras'] .sf-seg[data-id$='/git'] .sf-seg-t > span:first-child {
+  display: block;
+  flex: 0 1 auto;
+  width: max-content;
+  max-width: var(--branch-preview-width);
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.sf-dock[data-surface='omp.session'] [data-role='omp.composer.extras'] .sf-seg[data-id$='/git'] .sf-seg-t > span:not(:first-child) {
+  flex: 0 0 auto;
+}
+
+
+/* A separate generated label keeps the branch and counts in their original slots. */
+.tn-pane.on .sf-dock[data-surface='omp.session'] [data-role='omp.composer.extras'] .sf-seg[data-id$='/git']:hover::after {
+  content: var(--branch-preview-name, none);
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 6px);
+  z-index: 100;
+  width: max-content;
+  max-width: min(480px, 100%);
+  box-sizing: border-box;
+  padding: 5px 9px;
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  font-family: var(--sans);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--t1);
+  background: var(--pop-bg);
+  border: 1px solid var(--l2);
+  border-radius: var(--r-chip);
+  box-shadow: 0 3px 12px rgb(0 0 0 / 15%);
+  pointer-events: none;
+}

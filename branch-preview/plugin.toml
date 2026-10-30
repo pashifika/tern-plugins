@@ -1,0 +1,7 @@
+schema = 1
+id = "branch-preview"
+name = "Branch Preview"
+version = "0.1.0"
+description = "Compact Git branch names in the OMP composer with a full-name hover preview."
+icon = "branch"
+window = "window.luau"
