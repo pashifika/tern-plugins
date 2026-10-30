@@ -10,6 +10,7 @@ written in English.
 | Path | Purpose |
 |---|---|
 | `project-commands/` | Project Commands plugin and its Bun helper |
+| `branch-preview/` | OMP composer branch-name truncation and hover preview |
 | `examples/tern-sdk/` | Ignored, independent checkout of the upstream SDK |
 | `AGENTS.md` | Short repository-wide instructions for coding agents |
 
@@ -151,3 +152,41 @@ Preserve these boundaries when changing the implementation:
    OS-level IME input or a real Rust/npm project build.
 5. Inspect the diff for unrelated changes, credentials and private execution data.
    Do not commit generated `tern.d.luau`, `node_modules` or the SDK checkout.
+
+## Branch Preview
+
+The window entry installs layout CSS and reads the focused composer's dock to
+maintain a separate CSS popup string. User behavior and local installation are
+documented in [its README](branch-preview/README.md). Keep the first Git span
+(branch name) separate from every following count span; hover must preserve
+the original label and the count text, colors, and geometry. Escape branch text
+as a CSS string, and scope the generated popup to the focused pane.
+
+Run from the repository root with Bun, desktop Tern, and `omp` on `PATH`:
+
+```sh
+bun run branch-preview/scripts/smoke.ts
+```
+
+The smoke launches a real macOS Tern window and OMP with a disposable Git project,
+installation, daemon, shell environment, and credential-free agent profile. It
+checks `tern plugin dir` before registration, loads the actual plugin, and never
+requests a model turn. A test-only window entry overrides the width limit for
+the exact-fit boundary case; it does not supply popup content. The developer
+sign-in fixture only dismisses the owned window's beta gate; it does not
+authenticate an account.
+
+Acceptance covers long, short, exact-fit, and quoted Unicode branch names,
+separate staged/unstaged/untracked counts, stable hover geometry, 1280 px and
+640 px windows, light and dark themes, live branch renames, the model tooltip,
+and the existing Git click action. Inspect the normal/hover PNGs as well as
+assertions: Tern's tree and layout APIs omit generated content, so assertions
+cannot prove the popup text, bounds, or absence of an ellipsis at the exact-fit
+boundary. The command prints a temporary `evidence.json` path containing
+versions, source hashes, control results, and screenshot locations, then closes
+only its owned window and daemon.
+
+Keep the reviewed source hashes and verification scope in
+`branch-preview/verification.json`. Do not commit raw control logs or screenshots
+without reviewing them for local paths and private data. This smoke does not
+qualify Linux, Windows, the web tab, touch, or other OMP composer structures.

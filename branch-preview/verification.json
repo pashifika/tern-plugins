@@ -1,0 +1,49 @@
+{
+  "passed": true,
+  "command": "bun run branch-preview/scripts/smoke.ts",
+  "platform": "macOS arm64",
+  "versions": {
+    "tern": "tern 0.9.8 (f21d9a3)",
+    "omp": "omp/18.14.0",
+    "bun": "1.3.14"
+  },
+  "sdkRevision": "78ba204e19c6ee1eae5e102a83a551220180c69f",
+  "branch": "feat/branch-hover-preview",
+  "intendedBase": "main",
+  "sourceHashes": {
+    "plugin.toml": "8c90ea166971cd95542849965f5fbe89ccb8a72cbbe3897658a662aefc38c8c0",
+    "window.luau": "21066723a6671ecfc900ada2d98e2c2115461dccdb01b3ddf44ed9b56d4374c8",
+    "style.css": "1470d5b8a6d2c8215cf5395b7257bcfbceec36a8645fbc85a9a6caf1240cdaaa",
+    "scripts/smoke.ts": "f68cb6ed5ce439a34dbcdfa4bd6f3461d9008790bc348c25d5fb870cd6fe538b"
+  },
+  "checks": [
+    "Actual plugin registration in a verified disposable installation; stylesheet loaded through its window entry",
+    "Actual OMP composer over a disposable Git repository, without credentials or model requests",
+    "Long branch ellipsis with separate unstaged *2, staged +1 and untracked ?12 counts",
+    "Hover shows a separate full-name popup; the original compact branch label remains in place",
+    "Branch label, count text, count coordinates, branch hit target, model control and send button remain unchanged during hover",
+    "Preview remains inside the status strip's horizontal bounds and collapses on pointer exit",
+    "Light and dark appearances at 1280x800 and 640x800",
+    "Live branch renames update the preview; main uses its natural width",
+    "A branch fitting exactly into a measured 132 px limit remains complete, without an ellipsis",
+    "Quoted Unicode branch names appear intact in the popup",
+    "Existing native Switch model tooltip remains functional",
+    "Git click action opens OMP's 15-change Git view",
+    "Owned window and daemon closed after acceptance"
+  ],
+  "visualReview": [
+    "light-1280-hover.png, light-640-hover.png, dark-1280-hover.png, dark-640-hover.png: full branch wraps above the unchanged compact label and separate counts",
+    "short-branch-hover.png: main remains fully visible in both the strip and popup",
+    "exact-fit-hover.png: boundary-12345678901 is complete in the exact-width strip and popup",
+    "quoted-unicode-hover.png: quotes and Japanese characters render literally, with no CSS escaping artifacts"
+  ],
+  "evidenceDirectory": "tern-branch-preview-YzHBY3 under the system temporary directory",
+  "limitations": [
+    "CSS generated-content popup, not the native title-tooltip component or model selection menu",
+    "Preview content follows the focused pane and can lag a branch rename by one 500 ms polling interval",
+    "Generated popup content and exact-fit glyphs require screenshot review; Tern's tree and layout APIs do not expose them",
+    "Windows, Linux, web tabs, touch, split panes and alternative composer structures are not qualified",
+    "Tern retains control over hiding segments at extremely narrow widths",
+    "No registration in the user's normal Tern installation"
+  ]
+}
