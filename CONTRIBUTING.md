@@ -11,6 +11,7 @@ written in English.
 |---|---|
 | `project-commands/` | Project Commands plugin and its Bun helper |
 | `branch-preview/` | OMP composer branch-name truncation and hover preview |
+| `usage-preview/` | OMP reset-credit details shown on usage hover |
 | `examples/tern-sdk/` | Ignored, independent checkout of the upstream SDK |
 | `AGENTS.md` | Short repository-wide instructions for coding agents |
 
@@ -190,3 +191,46 @@ Keep the reviewed source hashes and verification scope in
 `branch-preview/verification.json`. Do not commit raw control logs or screenshots
 without reviewing them for local paths and private data. This smoke does not
 qualify Linux, Windows, the web tab, touch, or other OMP composer structures.
+
+## Usage Preview
+
+The window entry identifies the focused OMP usage segment's reset-credit span
+and builds CSS for that element and its preceding separator. `style.css`
+contains the popup declaration block, not a standalone stylesheet. Keep the
+quota spans and their geometry unchanged on hover, and preserve OMP's warning
+colors. Unstyled TSP runs are text nodes: their indices do not count toward
+CSS `:nth-child`.
+The usage segment itself is the popup's containing block. The preview's right
+edge must align with usage, not with the surrounding extras strip or Git label.
+
+Run the native anchor regression from the repository root:
+
+```sh
+bun run usage-preview/scripts/smoke.ts
+```
+
+It loads both preview plugins in an isolated installation and emits an
+account-free native TSP fixture modeled on OMP 18.18.6. It asserts right-edge
+alignment, a 6 px vertical gap, and unchanged quota/control geometry in light
+and dark themes at 1280/640 px, plus credit-only and credit-only-warning cases.
+The command prints an `evidence.json` path and closes its own window and daemon.
+Inspect the normal/hover PNGs alongside the assertions.
+
+Use the same disposable installation, daemon, shell, and credential-free OMP
+isolation as Branch Preview. On Tern 0.9.13, the control `state` response reports
+the sign-in phase under `account`, not `gate`.
+
+For account-independent native verification, capture only a disposable OMP
+composer's dock using `cx.session:surface` and replay it through TSP with
+synthetic usage spans matching the installed OMP renderer. Do not request a
+model turn or copy personal authentication state. Check the real Tern surface
+with `tern ctl tree`, `hover`, `move`, and `shot`; inspect the PNGs and compare
+the quota, Git-count, model, and send-control geometry before and during hover.
+Include mixed styled/unstyled runs, dimmed runs, absent credits, credit-only
+usage, and expiry warnings. Allow the 500 ms real-time refresh to settle after
+changing the span structure, and dismiss transient notices before hovering.
+
+Record the exact runtime versions, SDK revision, plugin source hashes,
+commands, and exercised scope in `usage-preview/verification.json`. Synthetic
+usage proves native presentation, not account usage retrieval. User behavior
+and installation are documented in [the plugin README](usage-preview/README.md).

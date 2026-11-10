@@ -1,0 +1,105 @@
+{
+  "date": "2026-11-10",
+  "branch": "feat/usage-hover-preview",
+  "intendedPrBase": "main",
+  "baseRevision": "f1a17ca8022106f27b3eb56199006f23ca39cd6d",
+  "runtime": {
+    "tern": "0.9.13 (8c6dfbd)",
+    "omp": "18.18.6",
+    "bun": "1.4.4",
+    "os": "macOS arm64"
+  },
+  "sdkRevision": "a933069de6f6e7707880383f56f7695cf8940ced",
+  "sourceHashes": {
+    "plugin.toml": "d49f52904b256b1bda9e8f71d674f01d4d9f5c12e6db8817034e946a7c3143b9",
+    "window.luau": "cfc9316b8df65d7aa068306efdf26594718f56adc4c95695b6d520a5226baad2",
+    "style.css": "e2b710310f90844c2017869d01e1ba930e2a5d9c2173880c01853fd0097763ae"
+  },
+  "method": "Owned native Tern window with isolated plugin installation, daemon, HOME, shell and credential-free OMP. Captured the actual OMP dock, then replayed it through TSP with synthetic reset-credit usage spans matching the installed OMP renderer. No model turn or account request.",
+  "commands": [
+    "bun /tmp/usage-native-probe.ts",
+    "tern plugin dir --json (isolated TERN_CONFIG_DIR and TERN_DAEMON_SOCKET)",
+    "tern plugin link ./usage-preview --json (same isolated environment)",
+    "tern plugin reload usage-preview (same isolated environment)",
+    "tern ctl --control 55222 run \"<absolute-bun> /tmp/usage-native-fixture.ts\"",
+    "tern ctl --control 55222 tree <usage/branch/model/send selectors>",
+    "tern ctl --control 55222 hover <usage selector>",
+    "tern ctl --control 55222 move 20 200",
+    "tern ctl --control 55222 resize <1280|640> 800",
+    "tern ctl --control 55222 shot <case>-<normal|hover>"
+  ],
+  "passed": [
+    "light-1280",
+    "light-640",
+    "dark-1280",
+    "dark-640",
+    "no-credits",
+    "credits-only",
+    "expiring",
+    "dimmed",
+    "expired"
+  ],
+  "assertions": [
+    "Reset-credit span and separator hidden before hover; credit visible during hover and hidden on leave.",
+    "Quota span text and geometry unchanged by hover.",
+    "Git counts, model control, send control and usage hit-target geometry unchanged by hover.",
+    "Popup lies above the usage strip.",
+    "No-credit usage has no popup; credit-only usage retains an icon hover target."
+  ],
+  "visuallyReviewed": [
+    "light-1280 normal and hover",
+    "dark-640 hover",
+    "credits-only hover",
+    "expiring hover"
+  ],
+  "evidence": "Disposable native control log, geometry, and screenshot paths recorded in /tmp/usage-acceptance-evidence.json; not committed.",
+  "untested": [
+    "Live account usage retrieval",
+    "Split panes",
+    "Touch interaction",
+    "Linux and Windows",
+    "Web tab",
+    "Usage click action (fixture only; no live provider)"
+  ],
+  "normalInstallationModified": false,
+  "anchorQualification": {
+    "date": "2026-11-10",
+    "command": "bun run usage-preview/scripts/smoke.ts",
+    "passed": true,
+    "runtime": {
+      "tern": "0.9.13 (8c6dfbd)",
+      "bun": "1.3.14",
+      "os": "macOS arm64",
+      "fixtureComposerVersion": "OMP 18.18.6"
+    },
+    "sourceHashes": {
+      "plugin.toml": "d49f52904b256b1bda9e8f71d674f01d4d9f5c12e6db8817034e946a7c3143b9",
+      "window.luau": "ef02537d0407a4a8ce843f5c9c6cc224ed72168b91ccc02964e98a1e24cf3b33",
+      "style.css": "06c504ea61f894bf6b3d485b7a869b2096f413d40635cd1da01df2a1474dca87",
+      "scripts/smoke.ts": "79b339ce7987cf247e15eea3d4128f970dd311fb7b32c9f347cd779e8f6f9192"
+    },
+    "cases": [
+      "light-1280",
+      "light-640",
+      "dark-1280",
+      "dark-640",
+      "credits-only",
+      "credit-only-warning"
+    ],
+    "assertions": [
+      "Popup right edge aligns with the usage segment within 1 px.",
+      "Popup bottom is 6 px above the usage segment within 1 px.",
+      "Quota spans, Git counts, model, send and usage geometry stay unchanged on hover.",
+      "Credits are hidden before hover and after pointer leave.",
+      "Credit-only popup remains readable and inside the window."
+    ],
+    "visuallyReviewed": [
+      "light-1280 hover",
+      "dark-640 hover",
+      "credit-only-warning hover"
+    ],
+    "evidence": "Disposable directory tern-usage-preview-9yumDc: evidence.json and project/target/shots/tern/live/*.png; not committed.",
+    "normalInstallationModified": false,
+    "limits": "Native fixture presentation only; no live account usage request. Split panes, touch, non-macOS platforms and the web tab are unqualified."
+  }
+}

@@ -1,0 +1,21 @@
+/* Declarations applied to the existing reset-credit span on usage hover. */
+display: block;
+position: absolute;
+right: 0;
+bottom: calc(100% + 6px);
+z-index: 100;
+width: max-content;
+max-width: min(480px, max(100%, 160px));
+box-sizing: border-box;
+padding: 5px 9px;
+white-space: normal;
+overflow: visible;
+overflow-wrap: anywhere;
+font-family: var(--sans);
+font-size: 12px;
+line-height: 18px;
+background: var(--pop-bg);
+border: 1px solid var(--l2);
+border-radius: var(--r-chip);
+box-shadow: 0 3px 12px rgb(0 0 0 / 15%);
+pointer-events: none;
