@@ -1,0 +1,7 @@
+schema = 1
+id = "usage-preview"
+name = "Usage Preview"
+version = "0.1.0"
+description = "Show OMP usage reset credits on hover while keeping quota percentages visible."
+icon = "time"
+window = "window.luau"
